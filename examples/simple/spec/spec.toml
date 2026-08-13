@@ -1,0 +1,107 @@
+#:schema ../schemas/spec-schema.json
+# If Tombi complains about 'kind' in strict mode, uncomment the line below:
+# #:tombi schema.strict = false
+
+# 1. Test Simple Struct
+[[types]]
+kind = "Struct"
+name = "Point"
+
+[[types.fields]]
+name = "x"
+type = "f64"
+
+[[types.fields]]
+name = "y"
+type = "f64"
+
+# 2. Test Nested Struct (Reference to another type)
+[[types]]
+kind = "Struct"
+name = "Line"
+
+[[types.fields]]
+name = "start"
+type = "Point"
+
+[[types.fields]]
+name = "end"
+type = "Point"
+
+# 3. Test Unit Enum (Variants with NO fields)
+[[types]]
+kind = "Enum"
+name = "Color"
+
+[[types.variants]]
+kind = "Unit"
+name = "Red"
+
+[[types.variants]]
+kind = "Unit"
+name = "Green"
+
+[[types.variants]]
+kind = "Unit"
+name = "Blue"
+
+# 4. Test Complex Enum (Variants WITH fields)
+[[types]]
+kind = "Enum"
+name = "Shape"
+
+[[types.variants]]
+kind = "Struct"
+name = "Circle"
+
+[[types.variants.fields]]
+name = "radius"
+type = "f64"
+
+[[types.variants]]
+kind = "Struct"
+name = "Square"
+
+[[types.variants.fields]]
+name = "side_length"
+type = "f64"
+
+[[types.variants]]
+kind = "Struct"
+name = "Rectangle"
+
+[[types.variants.fields]]
+name = "width"
+type = "f64"
+
+[[types.variants.fields]]
+name = "height"
+type = "f64"
+
+[[types.variants]]
+kind = "Struct"
+name = "LineShape" # Reusing the Point type inside an enum variant
+
+[[types.variants.fields]]
+name = "start"
+type = "Point"
+
+[[types.variants.fields]]
+name = "end"
+type = "Point"
+
+[requests]
+name = "Request"
+
+[[requests.variants]]
+kind = "Tuple"
+name = "Shape"
+types = ["Shape"]
+
+[responses]
+name = "Response"
+
+[[responses.variants]]
+kind = "Tuple"
+name = "Shape"
+types = ["Shape"]

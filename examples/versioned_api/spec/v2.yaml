@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=../../../schemas/spec-schema.json
+# If Tombi complains about 'kind' in strict mode, uncomment the line below:
+# #:tombi schema.strict = false
+
+types:
+  # 1. Test Simple Struct
+  - kind: Struct
+    name: Point
+    fields:
+      - name: x
+        type: f64
+      - name: y
+        type: f64
+
+  # 2. Test Nested Struct (Reference to another type)
+  - kind: Struct
+    name: Line
+    fields:
+      - name: start
+        type: Point
+      - name: end
+        type: Point
+
+  # 3. Test Unit Enum (Variants with NO fields)
+  - kind: Enum
+    name: Color
+    variants:
+      - kind: Unit
+        name: Red
+      - kind: Unit
+        name: Green
+      - kind: Unit
+        name: Blue
+
+  # 4. Test Complex Enum (Variants WITH fields)
+  - kind: Enum
+    name: Shape
+    variants:
+      - kind: Struct
+        name: Circle
+        fields:
+          - name: radius
+            type: f64
+      - kind: Struct
+        name: Square
+        fields:
+          - name: side_length
+            type: f64
+      - kind: Struct
+        name: Rectangle
+        fields:
+          - name: width
+            type: f64
+          - name: height
+            type: f64
+      - kind: Struct
+        name: Triangle # Reusing the Point type inside an enum variant
+        fields:
+          - name: one
+            type: Point
+          - name: two
+            type: Point
+          - name: three
+            type: Point
+
+requests:
+  name: Request
+  variants:
+    - kind: Tuple
+      name: Shape
+      types:
+        - Shape
+responses:
+  name: Response
+  variants:
+    - kind: Tuple
+      name: Shape
+      types:
+        - Shape

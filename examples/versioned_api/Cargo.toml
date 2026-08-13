@@ -1,0 +1,13 @@
+[package]
+name = "versioned_api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+broto = { git = "https://github.com/nyanzebra/broto", branch = "main", features = ["async"] }
+futures = "0.3"
+futures-io = "0.3"
+
+[build-dependencies]
+broto-buff = { path = "../../", features = ["async"] }
+yaml_serde = "0.10"

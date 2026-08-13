@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Specification",
+  "type": "object",
+  "properties": {
+    "requests": {
+      "$ref": "#/$defs/EnumDefinition"
+    },
+    "responses": {
+      "$ref": "#/$defs/EnumDefinition"
+    },
+    "types": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TypeDefinition"
+      }
+    }
+  },
+  "required": [
+    "types",
+    "requests",
+    "responses"
+  ],
+  "$defs": {
+    "EnumDefinition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/TypeName"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EnumVariant"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "variants"
+      ]
+    },
+    "EnumVariant": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "fields": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Field"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "Struct"
+            },
+            "name": {
+              "$ref": "#/$defs/TypeName"
+            },
+            "tag": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "name"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "Tuple"
+            },
+            "name": {
+              "$ref": "#/$defs/TypeName"
+            },
+            "tag": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0
+            },
+            "types": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/TypeName"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "name"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "Unit"
+            },
+            "name": {
+              "$ref": "#/$defs/TypeName"
+            },
+            "tag": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "name"
+          ]
+        }
+      ]
+    },
+    "Field": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/TypeName"
+        }
+      },
+      "required": [
+        "name",
+        "type"
+      ]
+    },
+    "StructDefinition": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Field"
+          }
+        },
+        "name": {
+          "$ref": "#/$defs/TypeName"
+        }
+      },
+      "required": [
+        "name",
+        "fields"
+      ]
+    },
+    "TypeDefinition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "Struct"
+            }
+          },
+          "$ref": "#/$defs/StructDefinition",
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "Enum"
+            }
+          },
+          "$ref": "#/$defs/EnumDefinition",
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "TypeName": {
+      "type": "string"
+    }
+  }
+}

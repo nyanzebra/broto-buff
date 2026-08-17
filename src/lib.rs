@@ -18,17 +18,15 @@ pub trait Parse {
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[schemars(tag = "style")]
-#[serde(tag = "style")]
-pub enum StructDefinition {
-    C {
-        name: TypeName,
-        fields: Vec<Field>,
-    },
-    Tuple {
-        name: TypeName,
-        types: Vec<TypeName>,
-    },
+pub struct StructDefinition {
+    pub name: TypeName,
+    pub fields: Vec<Field>,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct TupleDefinition {
+    pub name: TypeName,
+    pub types: Vec<TypeName>,
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -63,8 +61,9 @@ pub struct EnumDefinition {
 #[schemars(tag = "kind")]
 #[serde(tag = "kind")]
 pub enum TypeDefinition {
-    Struct(StructDefinition),
     Enum(EnumDefinition),
+    Struct(StructDefinition),
+    Tuple(TupleDefinition),
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -235,6 +234,7 @@ fn make_type(def: &TypeDefinition) -> String {
 
     match def {
         TypeDefinition::Struct(struct_def) => content.push_str(&make_struct(struct_def)),
+        TypeDefinition::Tuple(tuple_def) => content.push_str(&make_tuple(tuple_def)),
         TypeDefinition::Enum(en) => content.push_str(&make_enum(en)),
     }
     content
@@ -283,14 +283,7 @@ fn make_enum(EnumDefinition { name, variants, .. }: &EnumDefinition) -> String {
     content
 }
 
-fn make_struct(def: &StructDefinition) -> String {
-    match def {
-        StructDefinition::C { name, fields } => make_c_struct(name, fields),
-        StructDefinition::Tuple { name, types } => make_tuple_struct(name, types),
-    }
-}
-
-fn make_c_struct(name: &TypeName, fields: &[Field]) -> String {
+fn make_struct(StructDefinition { name, fields }: &StructDefinition) -> String {
     let mut content = String::default();
 
     content.push_str(DERIVE);
@@ -304,7 +297,7 @@ fn make_c_struct(name: &TypeName, fields: &[Field]) -> String {
     content
 }
 
-fn make_tuple_struct(name: &TypeName, types: &[TypeName]) -> String {
+fn make_tuple(TupleDefinition { name, types }: &TupleDefinition) -> String {
     let mut content = String::default();
 
     content.push_str(DERIVE);
@@ -334,7 +327,7 @@ mod tests {
     fn yaml_example() {
         let spec = Specification {
             types: vec![
-                TypeDefinition::Struct(StructDefinition::C {
+                TypeDefinition::Struct(StructDefinition {
                     name: TypeName("Point".to_string()),
                     fields: vec![
                         Field {
@@ -372,7 +365,7 @@ mod tests {
     #[test]
     fn toml_example() {
         let spec = Specification {
-            types: vec![TypeDefinition::Struct(StructDefinition::C {
+            types: vec![TypeDefinition::Struct(StructDefinition {
                 name: TypeName("Point".to_string()),
                 fields: vec![
                     Field {

@@ -1,19 +1,20 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Specification",
+  "description": "Represents the entire specification, including type definitions and requests/responses.",
   "type": "object",
   "properties": {
     "requests": {
+      "description": "The enum definition for requests.",
       "$ref": "#/$defs/EnumDefinition"
     },
     "responses": {
+      "description": "The enum definition for responses.",
       "$ref": "#/$defs/EnumDefinition"
     },
     "types": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/TypeDefinition"
-      }
+      "description": "The collection of type definitions and modules.",
+      "$ref": "#/$defs/Types"
     }
   },
   "required": [
@@ -23,12 +24,15 @@
   ],
   "$defs": {
     "EnumDefinition": {
+      "description": "Represents an enum definition.",
       "type": "object",
       "properties": {
         "name": {
+          "description": "The name of the enum.",
           "$ref": "#/$defs/TypeName"
         },
         "variants": {
+          "description": "The variants in the enum.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/EnumVariant"
@@ -36,16 +40,18 @@
         }
       },
       "required": [
-        "name",
-        "variants"
+        "name"
       ]
     },
     "EnumVariant": {
+      "description": "Represents a single variant in an enum (struct, tuple, or unit).",
       "oneOf": [
         {
+          "description": "Represents a struct variant.",
           "type": "object",
           "properties": {
             "fields": {
+              "description": "The fields of the struct.",
               "type": "array",
               "items": {
                 "$ref": "#/$defs/Field"
@@ -56,9 +62,11 @@
               "const": "Struct"
             },
             "name": {
+              "description": "The name of the struct.",
               "$ref": "#/$defs/TypeName"
             },
             "tag": {
+              "description": "The tag value, if any.",
               "type": [
                 "integer",
                 "null"
@@ -74,6 +82,7 @@
           ]
         },
         {
+          "description": "Represents a tuple variant.",
           "type": "object",
           "properties": {
             "kind": {
@@ -81,9 +90,11 @@
               "const": "Tuple"
             },
             "name": {
+              "description": "The name of the tuple.",
               "$ref": "#/$defs/TypeName"
             },
             "tag": {
+              "description": "The tag value, if any.",
               "type": [
                 "integer",
                 "null"
@@ -93,6 +104,7 @@
               "minimum": 0
             },
             "types": {
+              "description": "The types in the tuple.",
               "type": "array",
               "items": {
                 "$ref": "#/$defs/TypeName"
@@ -101,10 +113,12 @@
           },
           "required": [
             "kind",
-            "name"
+            "name",
+            "types"
           ]
         },
         {
+          "description": "Represents a unit variant.",
           "type": "object",
           "properties": {
             "kind": {
@@ -112,9 +126,11 @@
               "const": "Unit"
             },
             "name": {
+              "description": "The name of the unit variant.",
               "$ref": "#/$defs/TypeName"
             },
             "tag": {
+              "description": "The tag value, if any.",
               "type": [
                 "integer",
                 "null"
@@ -132,12 +148,15 @@
       ]
     },
     "Field": {
+      "description": "Represents a field in a struct or enum.",
       "type": "object",
       "properties": {
         "name": {
+          "description": "The name of the field.",
           "type": "string"
         },
         "type": {
+          "description": "The type of the field.",
           "$ref": "#/$defs/TypeName"
         }
       },
@@ -146,31 +165,63 @@
         "type"
       ]
     },
+    "Module": {
+      "description": "Represents a module containing type definitions.",
+      "type": "object",
+      "properties": {
+        "mods": {
+          "description": "The submodules in the module.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Module"
+          }
+        },
+        "name": {
+          "description": "The name of the module.",
+          "type": "string"
+        },
+        "types": {
+          "description": "The type definitions in the module.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TypeDefinition"
+          }
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
     "StructDefinition": {
+      "description": "Represents a struct definition.",
       "type": "object",
       "properties": {
         "fields": {
+          "description": "The fields of the struct.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/Field"
           }
         },
         "name": {
+          "description": "The name of the struct.",
           "$ref": "#/$defs/TypeName"
         }
       },
       "required": [
-        "name",
-        "fields"
+        "name"
       ]
     },
     "TupleDefinition": {
+      "description": "Represents a struct tuple definition.",
       "type": "object",
       "properties": {
         "name": {
+          "description": "The name of the tuple.",
           "$ref": "#/$defs/TypeName"
         },
         "types": {
+          "description": "The types in the tuple.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/TypeName"
@@ -183,8 +234,10 @@
       ]
     },
     "TypeDefinition": {
+      "description": "Represents a type definition (enum, struct, or tuple).",
       "oneOf": [
         {
+          "description": "Represents an enum definition.",
           "type": "object",
           "properties": {
             "kind": {
@@ -198,6 +251,7 @@
           ]
         },
         {
+          "description": "Represents a struct definition.",
           "type": "object",
           "properties": {
             "kind": {
@@ -211,6 +265,7 @@
           ]
         },
         {
+          "description": "Represents a tuple definition.",
           "type": "object",
           "properties": {
             "kind": {
@@ -226,7 +281,47 @@
       ]
     },
     "TypeName": {
-      "type": "string"
+      "description": "Represents a type name, optionally with a module prefix.\nThe module prefix should be a fully qualified module path.",
+      "type": "object",
+      "properties": {
+        "module": {
+          "description": "The module prefix, if any.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "The name of the type.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Types": {
+      "description": "Represents a collection of type definitions and modules.\nThis is the global module that contains all type definitions and submodules.",
+      "type": "object",
+      "properties": {
+        "definitions": {
+          "description": "The type definitions in the global module.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TypeDefinition"
+          }
+        },
+        "modules": {
+          "description": "The submodules in the global module.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Module"
+          }
+        }
+      },
+      "required": [
+        "definitions"
+      ]
     }
   }
 }

@@ -11,81 +11,283 @@ use walkdir::WalkDir;
 const HEADER: &str = "/// This an auto-generated file. Do not edit directly.";
 const DERIVE: &str = "#[derive(Clone, Debug, PartialEq, broto::Encode, broto::Decode)]";
 
+/// Trait for parsing a specification from a string.
+/// Users should implement this trait for their own parsers as this
+/// crate provides no default implementations.
 pub trait Parse {
     type Error: std::error::Error;
 
+    /// Parses the given content into a [`Specification`].
     fn parse(&self, content: &impl AsRef<str>) -> Result<Specification, Self::Error>;
 }
 
+/// Represents a type name, optionally with a module prefix.
+/// The module prefix should be a fully qualified module path.
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct TypeName {
+    /// The name of the type.
+    pub name: String,
+
+    /// The module prefix, if any.
+    pub module: Option<String>,
+}
+
+impl Display for TypeName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(module) = &self.module {
+            write!(f, "{}::{}", module, self.name)
+        } else {
+            write!(f, "{}", self.name)
+        }
+    }
+}
+
+/// Represents a field in a struct or enum.
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct Field {
+    /// The name of the field.
+    pub name: String,
+    /// The type of the field.
+    pub r#type: TypeName,
+}
+
+impl Display for Field {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "pub {}: {}", self.name, self.r#type)
+    }
+}
+
+/// Represents a struct definition.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct StructDefinition {
+    /// The name of the struct.
     pub name: TypeName,
+    /// The fields of the struct.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub fields: Vec<Field>,
 }
 
+impl Display for StructDefinition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", DERIVE)?;
+        writeln!(f, "pub struct {} {{", self.name)?;
+        for field in &self.fields {
+            writeln!(f, "\t{},", field)?;
+        }
+        writeln!(f, "}}")
+    }
+}
+
+/// Represents a struct tuple definition.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct TupleDefinition {
+    /// The name of the tuple.
     pub name: TypeName,
+    /// The types in the tuple.
     pub types: Vec<TypeName>,
 }
 
+impl Display for TupleDefinition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", DERIVE)?;
+        writeln!(f, "pub struct {}(", self.name)?;
+        for (i, t) in self.types.iter().enumerate() {
+            if i < self.types.len() - 1 {
+                writeln!(f, "{},", t)?;
+            } else {
+                writeln!(f, "{}", t)?;
+            }
+        }
+        writeln!(f, ");")
+    }
+}
+
+/// Represents a single variant in an enum (struct, tuple, or unit).
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(tag = "kind")]
 #[serde(tag = "kind")]
 pub enum EnumVariant {
+    /// Represents a struct variant.
     Struct {
+        /// The name of the struct.
         name: TypeName,
+        /// The tag value, if any.
         tag: Option<u8>,
+        /// The fields of the struct.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         fields: Vec<Field>,
     },
+    /// Represents a tuple variant.
     Tuple {
+        /// The name of the tuple.
         name: TypeName,
+        /// The tag value, if any.
         tag: Option<u8>,
-        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        /// The types in the tuple.
         types: Vec<TypeName>,
     },
+    /// Represents a unit variant.
     Unit {
+        /// The name of the unit variant.
         name: TypeName,
+        /// The tag value, if any.
         tag: Option<u8>,
     },
 }
 
+impl Display for EnumVariant {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EnumVariant::Struct { name, tag, fields } => {
+                if let Some(tag) = tag {
+                    writeln!(f, "#[tag({tag})]")?;
+                }
+
+                write!(f, "\t{} {{\n", name)?;
+                for field in fields {
+                    write!(f, "\t\t{}: {},\n", field.name, field.r#type)?;
+                }
+                writeln!(f, "\t}},")
+            }
+            EnumVariant::Tuple { name, tag, types } => {
+                if let Some(tag) = tag {
+                    writeln!(f, "#[tag({tag})]")?;
+                }
+                write!(f, "\t{}(", name)?;
+                for (i, r#type) in types.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", r#type)?;
+                }
+                writeln!(f, "),")
+            }
+            EnumVariant::Unit { name, tag } => {
+                if let Some(tag) = tag {
+                    writeln!(f, "#[tag({tag})]")?;
+                }
+                writeln!(f, "\t{},", name)
+            }
+        }
+    }
+}
+
+/// Represents an enum definition.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct EnumDefinition {
+    /// The name of the enum.
     pub name: TypeName,
+    /// The variants in the enum.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub variants: Vec<EnumVariant>,
 }
 
+impl Display for EnumDefinition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", DERIVE)?;
+        writeln!(f, "pub enum {} {{", self.name)?;
+        for variant in &self.variants {
+            write!(f, "{}", variant)?;
+        }
+        writeln!(f, "}}")
+    }
+}
+
+/// Represents a type definition (enum, struct, or tuple).
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(tag = "kind")]
 #[serde(tag = "kind")]
 pub enum TypeDefinition {
+    /// Represents an enum definition.
     Enum(EnumDefinition),
+    /// Represents a struct definition.
     Struct(StructDefinition),
+    /// Represents a tuple definition.
     Tuple(TupleDefinition),
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-pub struct TypeName(String);
-
-impl Display for TypeName {
+impl Display for TypeDefinition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        match self {
+            TypeDefinition::Enum(e) => writeln!(f, "{}", e)?,
+            TypeDefinition::Struct(s) => writeln!(f, "{}", s)?,
+            TypeDefinition::Tuple(t) => writeln!(f, "{}", t)?,
+        }
+        Ok(())
     }
 }
 
+/// Represents a module containing type definitions.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-pub struct Field {
+pub struct Module {
+    /// The name of the module.
     pub name: String,
-    pub r#type: TypeName,
+    /// The type definitions in the module.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub types: Vec<TypeDefinition>,
+    /// The submodules in the module.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mods: Vec<Module>,
 }
 
+impl Display for Module {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "pub mod {} {{", self.name)?;
+        for t in &self.types {
+            writeln!(f, "\t{}", t)?;
+        }
+        for m in &self.mods {
+            writeln!(f, "\t{}", m)?;
+        }
+        writeln!(f, "}}")?;
+        Ok(())
+    }
+}
+
+/// Represents a collection of type definitions and modules.
+/// This is the global module that contains all type definitions and submodules.
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct Types {
+    /// The type definitions in the global module.
+    pub definitions: Vec<TypeDefinition>,
+    /// The submodules in the global module.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub modules: Vec<Module>,
+}
+
+impl Display for Types {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for t in &self.definitions {
+            writeln!(f, "{}", t)?;
+        }
+
+        for m in &self.modules {
+            writeln!(f, "{}", m)?;
+        }
+
+        Ok(())
+    }
+}
+
+/// Represents the entire specification, including type definitions and requests/responses.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Specification {
-    pub types: Vec<TypeDefinition>,
+    /// The collection of type definitions and modules.
+    pub types: Types,
+    /// The enum definition for requests.
     pub requests: EnumDefinition,
+    /// The enum definition for responses.
     pub responses: EnumDefinition,
+}
+
+impl Display for Specification {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", HEADER)?;
+        writeln!(f, "{}", self.types)?;
+        writeln!(f, "{}", self.requests)?;
+        writeln!(f, "{}", self.responses)?;
+        Ok(())
+    }
 }
 
 pub fn generate<P>(
@@ -158,7 +360,7 @@ where
         let mut path = output_dir.join(version);
         path.set_extension("rs");
 
-        write(&path, spec_to_rs(&spec))
+        write(&path, &format!("{}", spec))
             .inspect_err(|e| println!("cargo:warning=failed to write {path:?}: {e}"))?;
     }
 
@@ -204,117 +406,6 @@ fn make_version_rs(versions: &[String]) -> String {
     content
 }
 
-fn spec_to_rs(
-    Specification {
-        types,
-        requests,
-        responses,
-    }: &Specification,
-) -> String {
-    let mut content = String::default();
-
-    content.push_str(HEADER);
-    content.push_str("\n");
-
-    content.push_str(&make_enum(&requests));
-    content.push_str("\n");
-    content.push_str(&make_enum(&responses));
-    content.push_str("\n");
-
-    for type_def in types {
-        content.push_str(&make_type(&type_def));
-        content.push_str("\n");
-    }
-
-    content
-}
-
-fn make_type(def: &TypeDefinition) -> String {
-    let mut content = String::default();
-
-    match def {
-        TypeDefinition::Struct(struct_def) => content.push_str(&make_struct(struct_def)),
-        TypeDefinition::Tuple(tuple_def) => content.push_str(&make_tuple(tuple_def)),
-        TypeDefinition::Enum(en) => content.push_str(&make_enum(en)),
-    }
-    content
-}
-
-fn make_enum(EnumDefinition { name, variants, .. }: &EnumDefinition) -> String {
-    let mut content = String::default();
-    content.push_str(DERIVE);
-    content.push_str("\n");
-    content.push_str(&format!("pub enum {} {{\n", name));
-    for variant in variants {
-        match variant {
-            EnumVariant::Struct { name, tag, fields } => {
-                if let Some(tag) = tag {
-                    content.push_str(&format!("#[tag({tag})]\n"));
-                }
-
-                content.push_str(&format!("\t{} {{\n", name));
-                for field in fields {
-                    content.push_str(&format!("\t\t{}: {},\n", field.name, field.r#type));
-                }
-                content.push_str("\t},\n");
-            }
-            EnumVariant::Tuple { name, tag, types } => {
-                if let Some(tag) = tag {
-                    content.push_str(&format!("#[tag({tag})]\n"));
-                }
-                content.push_str(&format!("\t{}(", name));
-                for (i, r#type) in types.iter().enumerate() {
-                    if i > 0 {
-                        content.push_str(", ");
-                    }
-                    content.push_str(&format!("{}", r#type));
-                }
-                content.push_str(")\n");
-            }
-            EnumVariant::Unit { name, tag } => {
-                if let Some(tag) = tag {
-                    content.push_str(&format!("#[tag({tag})]\n"));
-                }
-                content.push_str(&format!("\t{},\n", name));
-            }
-        }
-    }
-    content.push_str("}\n");
-    content
-}
-
-fn make_struct(StructDefinition { name, fields }: &StructDefinition) -> String {
-    let mut content = String::default();
-
-    content.push_str(DERIVE);
-    content.push_str("\n");
-    content.push_str(&format!("pub struct {} {{\n", name));
-    for field in fields {
-        content.push_str(&format!("\tpub {}: {},\n", field.name, field.r#type));
-    }
-    content.push_str("}\n");
-
-    content
-}
-
-fn make_tuple(TupleDefinition { name, types }: &TupleDefinition) -> String {
-    let mut content = String::default();
-
-    content.push_str(DERIVE);
-    content.push_str("\n");
-    content.push_str(&format!("pub struct {}(\n", name));
-    // Last doesn't need a comma
-    for (i, r#type) in types.iter().enumerate() {
-        content.push_str(&format!("pub {}", r#type));
-        if i < types.len() - 1 {
-            content.push_str(", ");
-        }
-    }
-    content.push_str(")\n");
-
-    content
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -325,70 +416,13 @@ mod tests {
     #[ignore = "for making examples"]
     #[test]
     fn yaml_example() {
-        let spec = Specification {
-            types: vec![
-                TypeDefinition::Struct(StructDefinition {
-                    name: TypeName("Point".to_string()),
-                    fields: vec![
-                        Field {
-                            name: "x".to_string(),
-                            r#type: TypeName("f64".to_string()),
-                        },
-                        Field {
-                            name: "y".to_string(),
-                            r#type: TypeName("f64".to_string()),
-                        },
-                    ],
-                }),
-                TypeDefinition::Enum(EnumDefinition {
-                    name: TypeName("Color".to_string()),
-                    variants: vec![EnumVariant::Unit {
-                        name: TypeName("Red".to_string()),
-                        tag: None,
-                    }],
-                }),
-            ],
-            requests: EnumDefinition {
-                name: TypeName("Request".to_string()),
-                variants: vec![],
-            },
-            responses: EnumDefinition {
-                name: TypeName("Response".to_string()),
-                variants: vec![],
-            },
-        };
-
-        println!("ex: {:#?}", yaml_serde::to_string(&spec).unwrap());
+        println!("ex: {:#?}", yaml_serde::to_string(&test_spec()).unwrap());
     }
 
     #[ignore = "for making examples"]
     #[test]
     fn toml_example() {
-        let spec = Specification {
-            types: vec![TypeDefinition::Struct(StructDefinition {
-                name: TypeName("Point".to_string()),
-                fields: vec![
-                    Field {
-                        name: "x".to_string(),
-                        r#type: TypeName("f64".to_string()),
-                    },
-                    Field {
-                        name: "y".to_string(),
-                        r#type: TypeName("f64".to_string()),
-                    },
-                ],
-            })],
-            requests: EnumDefinition {
-                name: TypeName("Request".to_string()),
-                variants: vec![],
-            },
-            responses: EnumDefinition {
-                name: TypeName("Response".to_string()),
-                variants: vec![],
-            },
-        };
-
-        println!("ex: {:#?}", toml::to_string(&spec).unwrap());
+        println!("ex: {:#?}", toml::to_string(&test_spec()).unwrap());
     }
 
     #[test]
@@ -396,5 +430,75 @@ mod tests {
         let schema = schema_for!(Specification);
         let json = serde_json::to_string_pretty(&schema).unwrap();
         write("schemas/spec-schema.json", json).unwrap();
+    }
+
+    fn test_spec() -> Specification {
+        Specification {
+            types: Types {
+                definitions: vec![
+                    TypeDefinition::Struct(StructDefinition {
+                        name: TypeName {
+                            name: "Point".to_string(),
+                            module: None,
+                        },
+                        fields: vec![Field {
+                            name: "y".to_string(),
+                            r#type: TypeName {
+                                name: "f64".to_string(),
+                                module: None,
+                            },
+                        }],
+                    }),
+                    TypeDefinition::Enum(EnumDefinition {
+                        name: TypeName {
+                            name: "Color".to_string(),
+                            module: None,
+                        },
+                        variants: vec![EnumVariant::Unit {
+                            name: TypeName {
+                                name: "Red".to_string(),
+                                module: None,
+                            },
+                            tag: None,
+                        }],
+                    }),
+                    TypeDefinition::Tuple(TupleDefinition {
+                        name: TypeName {
+                            name: "Degrees".to_string(),
+                            module: Some("stuff".to_string()),
+                        },
+                        types: vec![],
+                    }),
+                ],
+                modules: vec![Module {
+                    name: "stuff".to_string(),
+                    types: vec![TypeDefinition::Tuple(TupleDefinition {
+                        name: TypeName {
+                            name: "Degrees".to_string(),
+                            module: None,
+                        },
+                        types: vec![TypeName {
+                            name: "f64".to_string(),
+                            module: None,
+                        }],
+                    })],
+                    mods: vec![],
+                }],
+            },
+            requests: EnumDefinition {
+                name: TypeName {
+                    name: "Request".to_string(),
+                    module: None,
+                },
+                variants: vec![],
+            },
+            responses: EnumDefinition {
+                name: TypeName {
+                    name: "Response".to_string(),
+                    module: None,
+                },
+                variants: vec![],
+            },
+        }
     }
 }

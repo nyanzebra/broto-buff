@@ -6,7 +6,6 @@ edition = "2024"
 repository = "https://github.com/nyanzebra/broto-buff"
 
 [dependencies]
-log = "0.4"
 broto = { git = "https://github.com/nyanzebra/broto", branch = "main", optional = true }
 serde = { version = "1", features = ["derive"] }
 schemars = "1"

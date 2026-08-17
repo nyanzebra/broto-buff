@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "broto"
 version = "0.1.0"
-source = "git+https://github.com/nyanzebra/broto?branch=main#0c374c9bc4d5443e5c48b4651fa2526932129fd1"
+source = "git+https://github.com/nyanzebra/broto?branch=main#f5a8977637380f34c7cf5c902b0d8f03e1ba06b2"
 dependencies = [
  "broto-derive",
  "thiserror",
@@ -16,7 +16,6 @@ name = "broto-buff"
 version = "0.1.0"
 dependencies = [
  "broto",
- "log",
  "schemars",
  "serde",
  "thiserror",
@@ -26,7 +25,7 @@ dependencies = [
 [[package]]
 name = "broto-derive"
 version = "0.1.0"
-source = "git+https://github.com/nyanzebra/broto?branch=main#0c374c9bc4d5443e5c48b4651fa2526932129fd1"
+source = "git+https://github.com/nyanzebra/broto?branch=main#f5a8977637380f34c7cf5c902b0d8f03e1ba06b2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -66,12 +65,6 @@ name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
-
-[[package]]
-name = "log"
-version = "0.4.33"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
 
 [[package]]
 name = "memchr"

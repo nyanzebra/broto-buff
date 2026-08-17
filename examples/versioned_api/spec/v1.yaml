@@ -5,6 +5,7 @@
 types:
   # 1. Test Simple Struct
   - kind: Struct
+    style: C
     name: Point
     fields:
       - name: x
@@ -14,6 +15,7 @@ types:
 
   # 2. Test Nested Struct (Reference to another type)
   - kind: Struct
+    style: C
     name: Line
     fields:
       - name: start

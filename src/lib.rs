@@ -17,13 +17,21 @@ pub trait Parse {
     fn parse(&self, content: &impl AsRef<str>) -> Result<Specification, Self::Error>;
 }
 
-#[derive(Serialize, Deserialize, JsonSchema)]
-pub struct StructDefinition {
-    pub name: TypeName,
-    pub fields: Vec<Field>,
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(tag = "style")]
+#[serde(tag = "style")]
+pub enum StructDefinition {
+    C {
+        name: TypeName,
+        fields: Vec<Field>,
+    },
+    Tuple {
+        name: TypeName,
+        types: Vec<TypeName>,
+    },
 }
 
-#[derive(Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(tag = "kind")]
 #[serde(tag = "kind")]
 pub enum EnumVariant {
@@ -45,13 +53,13 @@ pub enum EnumVariant {
     },
 }
 
-#[derive(Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct EnumDefinition {
     pub name: TypeName,
     pub variants: Vec<EnumVariant>,
 }
 
-#[derive(Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(tag = "kind")]
 #[serde(tag = "kind")]
 pub enum TypeDefinition {
@@ -59,7 +67,7 @@ pub enum TypeDefinition {
     Enum(EnumDefinition),
 }
 
-#[derive(Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct TypeName(String);
 
 impl Display for TypeName {
@@ -68,13 +76,13 @@ impl Display for TypeName {
     }
 }
 
-#[derive(Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Field {
     pub name: String,
     pub r#type: TypeName,
 }
 
-#[derive(Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Specification {
     pub types: Vec<TypeDefinition>,
     pub requests: EnumDefinition,
@@ -101,55 +109,62 @@ where
         ));
     }
 
+    println!("cargo:info=generating broto-buff bindings for files in {input_dir:?}");
+
     let mut versions = vec![];
     let mut specifications = vec![];
 
     for entry in WalkDir::new(&input_dir).max_depth(1) {
         match entry {
             Ok(entry) => {
+                println!("cargo:info=checking file {entry:?}");
+
                 let path = entry.path();
                 if path.is_file() {
                     if let Some(filename) = path.file_name().and_then(|n| n.to_str())
                         && filename.contains(ext_filter)
                     {
+                        println!("cargo:info=found file {filename}");
                         versions.push(filename.to_string());
                         if let Ok(content) = read_to_string(&path) {
                             match parse.parse(&content) {
                                 Ok(spec) => specifications.push(spec),
-                                Err(err) => log::warn!("failed to parse file {filename}: {err}"),
+                                Err(err) => {
+                                    println!("cargo:warning=failed to parse file {filename}: {err}")
+                                }
                             }
                         } else {
-                            log::warn!("failed to read file {filename}");
+                            println!("cargo:warning=failed to read file {filename}");
                         }
                     } else {
-                        log::warn!("filename is not valid");
+                        println!("cargo:warning=path {path:?} is not valid");
                     }
                 }
             }
             Err(err) => {
-                log::warn!("failed to handle entry due to {err}");
+                println!("cargo:warning=failed to handle entry due to {err}");
             }
         }
     }
 
     _ = remove_dir_all(&output_dir)
-        .inspect_err(|e| log::warn!("failed to remove dir {output_dir:?}: {e}"));
+        .inspect_err(|e| println!("cargo:warning=failed to remove dir {output_dir:?}: {e}"));
     create_dir_all(&output_dir)
-        .inspect_err(|e| log::warn!("failed to create dir {output_dir:?}: {e}"))?;
+        .inspect_err(|e| println!("cargo:warning=failed to create dir {output_dir:?}: {e}"))?;
 
     write(output_dir.join("version.rs"), make_version_rs(&versions))
-        .inspect_err(|e| log::warn!("failed to write mod.rs: {e}"))?;
+        .inspect_err(|e| println!("cargo:warning=failed to write mod.rs: {e}"))?;
 
     for (version, spec) in versions.iter().zip(specifications.into_iter()) {
         let mut path = output_dir.join(version);
         path.set_extension("rs");
 
         write(&path, spec_to_rs(&spec))
-            .inspect_err(|e| log::warn!("failed to write {path:?}: {e}"))?;
+            .inspect_err(|e| println!("cargo:warning=failed to write {path:?}: {e}"))?;
     }
 
     write(output_dir.join("mod.rs"), make_mod_rs(&versions))
-        .inspect_err(|e| log::warn!("failed to write mod.rs: {e}"))?;
+        .inspect_err(|e| println!("cargo:warning=failed to write mod.rs: {e}"))?;
 
     Ok(())
 }
@@ -268,7 +283,14 @@ fn make_enum(EnumDefinition { name, variants, .. }: &EnumDefinition) -> String {
     content
 }
 
-fn make_struct(StructDefinition { name, fields }: &StructDefinition) -> String {
+fn make_struct(def: &StructDefinition) -> String {
+    match def {
+        StructDefinition::C { name, fields } => make_c_struct(name, fields),
+        StructDefinition::Tuple { name, types } => make_tuple_struct(name, types),
+    }
+}
+
+fn make_c_struct(name: &TypeName, fields: &[Field]) -> String {
     let mut content = String::default();
 
     content.push_str(DERIVE);
@@ -278,6 +300,24 @@ fn make_struct(StructDefinition { name, fields }: &StructDefinition) -> String {
         content.push_str(&format!("\tpub {}: {},\n", field.name, field.r#type));
     }
     content.push_str("}\n");
+
+    content
+}
+
+fn make_tuple_struct(name: &TypeName, types: &[TypeName]) -> String {
+    let mut content = String::default();
+
+    content.push_str(DERIVE);
+    content.push_str("\n");
+    content.push_str(&format!("pub struct {}(\n", name));
+    // Last doesn't need a comma
+    for (i, r#type) in types.iter().enumerate() {
+        content.push_str(&format!("pub {}", r#type));
+        if i < types.len() - 1 {
+            content.push_str(", ");
+        }
+    }
+    content.push_str(")\n");
 
     content
 }
@@ -294,7 +334,7 @@ mod tests {
     fn yaml_example() {
         let spec = Specification {
             types: vec![
-                TypeDefinition::Struct(StructDefinition {
+                TypeDefinition::Struct(StructDefinition::C {
                     name: TypeName("Point".to_string()),
                     fields: vec![
                         Field {
@@ -332,7 +372,7 @@ mod tests {
     #[test]
     fn toml_example() {
         let spec = Specification {
-            types: vec![TypeDefinition::Struct(StructDefinition {
+            types: vec![TypeDefinition::Struct(StructDefinition::C {
                 name: TypeName("Point".to_string()),
                 fields: vec![
                     Field {

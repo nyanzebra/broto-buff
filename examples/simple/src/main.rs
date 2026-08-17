@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use broto::{Decode, DecodeExt as _, Encode};
 
 mod api;
-use api::*;
+use api::{spec::*, *};
 
 fn main() {
     let mut buffer = VecDeque::with_capacity(1024);

@@ -2,6 +2,7 @@ use std::{
     fmt::Display,
     fs::{create_dir_all, read_to_string, remove_dir_all, write},
     path::Path,
+    process::Command,
 };
 
 use schemars::JsonSchema;
@@ -355,6 +356,7 @@ where
 
     write(output_dir.join("version.rs"), make_version_rs(&versions))
         .inspect_err(|e| println!("cargo:warning=failed to write mod.rs: {e}"))?;
+    rustfmt(&output_dir.join("version.rs"))?;
 
     for (version, spec) in versions.iter().zip(specifications.into_iter()) {
         let mut path = output_dir.join(version);
@@ -362,10 +364,12 @@ where
 
         write(&path, &format!("{}", spec))
             .inspect_err(|e| println!("cargo:warning=failed to write {path:?}: {e}"))?;
+        rustfmt(&path)?;
     }
 
     write(output_dir.join("mod.rs"), make_mod_rs(&versions))
         .inspect_err(|e| println!("cargo:warning=failed to write mod.rs: {e}"))?;
+    rustfmt(&output_dir.join("mod.rs"))?;
 
     Ok(())
 }
@@ -404,6 +408,23 @@ fn make_version_rs(versions: &[String]) -> String {
     }
     content.push_str("}\n");
     content
+}
+
+fn rustfmt(path: &Path) -> std::io::Result<()> {
+    let status = Command::new("rustfmt")
+        .arg("--edition")
+        .arg("2024")
+        .arg(path)
+        .status()?;
+
+    if !status.success() {
+        return Err(std::io::Error::other(format!(
+            "rustfmt failed for {}",
+            path.display()
+        )));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

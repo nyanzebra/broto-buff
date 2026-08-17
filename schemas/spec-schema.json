@@ -147,57 +147,56 @@
       ]
     },
     "StructDefinition": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "fields": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/Field"
-              }
-            },
-            "name": {
-              "$ref": "#/$defs/TypeName"
-            },
-            "style": {
-              "type": "string",
-              "const": "C"
-            }
-          },
-          "required": [
-            "style",
-            "name",
-            "fields"
-          ]
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Field"
+          }
         },
-        {
-          "type": "object",
-          "properties": {
-            "name": {
-              "$ref": "#/$defs/TypeName"
-            },
-            "style": {
-              "type": "string",
-              "const": "Tuple"
-            },
-            "types": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/TypeName"
-              }
-            }
-          },
-          "required": [
-            "style",
-            "name",
-            "types"
-          ]
+        "name": {
+          "$ref": "#/$defs/TypeName"
         }
+      },
+      "required": [
+        "name",
+        "fields"
+      ]
+    },
+    "TupleDefinition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/TypeName"
+        },
+        "types": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TypeName"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "types"
       ]
     },
     "TypeDefinition": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "Enum"
+            }
+          },
+          "$ref": "#/$defs/EnumDefinition",
+          "required": [
+            "kind"
+          ]
+        },
         {
           "type": "object",
           "properties": {
@@ -216,10 +215,10 @@
           "properties": {
             "kind": {
               "type": "string",
-              "const": "Enum"
+              "const": "Tuple"
             }
           },
-          "$ref": "#/$defs/EnumDefinition",
+          "$ref": "#/$defs/TupleDefinition",
           "required": [
             "kind"
           ]

@@ -1,10 +1,11 @@
-#:schema ../schemas/spec-schema.json
+#:schema ../../../schemas/spec-schema.json
 # If Tombi complains about 'kind' in strict mode, uncomment the line below:
 # #:tombi schema.strict = false
 
 # 1. Test Simple Struct
 [[types]]
 kind = "Struct"
+style = "C"
 name = "Point"
 
 [[types.fields]]
@@ -18,6 +19,7 @@ type = "f64"
 # 2. Test Nested Struct (Reference to another type)
 [[types]]
 kind = "Struct"
+style = "C"
 name = "Line"
 
 [[types.fields]]

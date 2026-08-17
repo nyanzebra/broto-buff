@@ -1,4 +1,6 @@
 fn main() -> std::io::Result<()> {
+    println!("cargo:rerun-if-changed=./spec");
+
     struct Parser;
 
     impl broto_buff::Parse for Parser {

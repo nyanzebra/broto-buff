@@ -147,21 +147,53 @@
       ]
     },
     "StructDefinition": {
-      "type": "object",
-      "properties": {
-        "fields": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Field"
-          }
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "fields": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Field"
+              }
+            },
+            "name": {
+              "$ref": "#/$defs/TypeName"
+            },
+            "style": {
+              "type": "string",
+              "const": "C"
+            }
+          },
+          "required": [
+            "style",
+            "name",
+            "fields"
+          ]
         },
-        "name": {
-          "$ref": "#/$defs/TypeName"
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/TypeName"
+            },
+            "style": {
+              "type": "string",
+              "const": "Tuple"
+            },
+            "types": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/TypeName"
+              }
+            }
+          },
+          "required": [
+            "style",
+            "name",
+            "types"
+          ]
         }
-      },
-      "required": [
-        "name",
-        "fields"
       ]
     },
     "TypeDefinition": {

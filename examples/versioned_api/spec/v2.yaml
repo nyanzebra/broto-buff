@@ -3,79 +3,112 @@
 # #:tombi schema.strict = false
 
 types:
-  # 1. Test Simple Struct
-  - kind: Struct
-    style: C
-    name: Point
-    fields:
-      - name: x
-        type: f64
-      - name: y
-        type: f64
+  definitions:
+    # 1. Test Simple Struct
+    - kind: Struct
+      name:
+        name: Point
+      fields:
+        - name: x
+          type:
+            name: f64
+        - name: y
+          type:
+            name: f64
 
-  # 2. Test Nested Struct (Reference to another type)
-  - kind: Struct
-    style: C
-    name: Line
-    fields:
-      - name: start
-        type: Point
-      - name: end
-        type: Point
+    # 2. Test Nested Struct (Reference to another type)
+    - kind: Struct
+      name:
+        name: Line
+      fields:
+        - name: start
+          type:
+            name: Point
+        - name: end
+          type:
+            name: Point
 
-  # 3. Test Unit Enum (Variants with NO fields)
-  - kind: Enum
-    name: Color
-    variants:
-      - kind: Unit
-        name: Red
-      - kind: Unit
-        name: Green
-      - kind: Unit
-        name: Blue
+    # 3. Test Unit Enum (Variants with NO fields)
+    - kind: Enum
+      name:
+        name: Color
+      variants:
+        - kind: Unit
+          name:
+            name: Red
+        - kind: Unit
+          name:
+            name: Green
+        - kind: Unit
+          name:
+            name: Blue
 
-  # 4. Test Complex Enum (Variants WITH fields)
-  - kind: Enum
-    name: Shape
-    variants:
-      - kind: Struct
-        name: Circle
-        fields:
-          - name: radius
-            type: f64
-      - kind: Struct
-        name: Square
-        fields:
-          - name: side_length
-            type: f64
-      - kind: Struct
-        name: Rectangle
-        fields:
-          - name: width
-            type: f64
-          - name: height
-            type: f64
-      - kind: Struct
-        name: Triangle # Reusing the Point type inside an enum variant
-        fields:
-          - name: one
-            type: Point
-          - name: two
-            type: Point
-          - name: three
-            type: Point
+    # 4. Test Complex Enum (Variants WITH fields)
+    - kind: Enum
+      name:
+        name: Shape
+      variants:
+        # Struct variant: Circle { radius: f64 }
+        - kind: Struct
+          name:
+            name: Circle
+          fields:
+            - name: radius
+              type:
+                name: f64
+
+        # Struct variant: Square { side_length: f64 }
+        - kind: Struct
+          name:
+            name: Square
+          fields:
+            - name: side_length
+              type:
+                name: f64
+
+        # Struct variant: Rectangle { width: f64, height: f64 }
+        - kind: Struct
+          name:
+            name: Rectangle
+          fields:
+            - name: width
+              type:
+                name: f64
+            - name: height
+              type:
+                name: f64
+
+        # Struct variant: Triangle { one: Point, two: Point, three: Point }
+        - kind: Struct
+          name:
+            name: Triangle
+          fields:
+            - name: one
+              type:
+                name: Point
+            - name: two
+              type:
+                name: Point
+            - name: three
+              type:
+                name: Point
 
 requests:
-  name: Request
+  name:
+    name: Request
   variants:
     - kind: Tuple
-      name: Shape
+      name:
+        name: Shape
       types:
-        - Shape
+        - name: Shape
+
 responses:
-  name: Response
+  name:
+    name: Response
   variants:
     - kind: Tuple
-      name: Shape
+      name:
+        name: Shape
       types:
-        - Shape
+        - name: Shape

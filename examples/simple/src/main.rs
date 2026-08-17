@@ -13,7 +13,7 @@ fn main() {
         start: Point { x: 0.1, y: 0.2 },
         end: Point { x: 0.3, y: 0.4 },
     });
-    let response = Response::Shape(Shape::Circle { radius: 4.2 });
+    let response = Response::Shape(Shape::Circle(4.2));
 
     version.encode(&mut buffer).unwrap();
     request.encode(&mut buffer).unwrap();

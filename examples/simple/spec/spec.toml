@@ -1,107 +1,297 @@
 #:schema ../../../schemas/spec-schema.json
 # If Tombi complains about 'kind' in strict mode, uncomment the line below:
-# #:tombi schema.strict = false
+#:tombi schema.strict = false
+
+[types]
+
+# ============================================================
+# Global Types
+# ============================================================
 
 # 1. Test Simple Struct
-[[types]]
+[[types.definitions]]
 kind = "Struct"
+
+[types.definitions.name]
 name = "Point"
 
-[[types.fields]]
+[[types.definitions.fields]]
 name = "x"
-type = "f64"
 
-[[types.fields]]
+[types.definitions.fields.type]
+name = "f64"
+
+[[types.definitions.fields]]
 name = "y"
-type = "f64"
+
+[types.definitions.fields.type]
+name = "f64"
+
 
 # 2. Test Nested Struct (Reference to another type)
-[[types]]
+[[types.definitions]]
 kind = "Struct"
+
+[types.definitions.name]
 name = "Line"
 
-[[types.fields]]
+[[types.definitions.fields]]
 name = "start"
-type = "Point"
 
-[[types.fields]]
+[types.definitions.fields.type]
+name = "Point"
+
+[[types.definitions.fields]]
 name = "end"
-type = "Point"
 
-# 3. Test Unit Enum (Variants with NO fields)
-[[types]]
+[types.definitions.fields.type]
+name = "Point"
+
+
+# 3. Test Unit Enum
+[[types.definitions]]
 kind = "Enum"
+
+[types.definitions.name]
 name = "Color"
 
-[[types.variants]]
+[[types.definitions.variants]]
 kind = "Unit"
+
+[types.definitions.variants.name]
 name = "Red"
 
-[[types.variants]]
+[[types.definitions.variants]]
 kind = "Unit"
+
+[types.definitions.variants.name]
 name = "Green"
 
-[[types.variants]]
+[[types.definitions.variants]]
 kind = "Unit"
+
+[types.definitions.variants.name]
 name = "Blue"
 
-# 4. Test Complex Enum (Variants WITH fields)
-[[types]]
+
+# 4. Test Complex Enum
+[[types.definitions]]
 kind = "Enum"
+
+[types.definitions.name]
 name = "Shape"
 
-[[types.variants]]
-kind = "Struct"
+# Tuple variant: Circle(f64)
+[[types.definitions.variants]]
+kind = "Tuple"
+
+[types.definitions.variants.name]
 name = "Circle"
 
-[[types.variants.fields]]
-name = "radius"
-type = "f64"
+[[types.definitions.variants.types]]
+name = "f64"
 
-[[types.variants]]
+# Struct variant: Square { side_length: f64 }
+[[types.definitions.variants]]
 kind = "Struct"
+
+[types.definitions.variants.name]
 name = "Square"
 
-[[types.variants.fields]]
+[[types.definitions.variants.fields]]
 name = "side_length"
-type = "f64"
 
-[[types.variants]]
+[types.definitions.variants.fields.type]
+name = "f64"
+
+# Struct variant: Rectangle { width: f64, height: f64 }
+[[types.definitions.variants]]
 kind = "Struct"
+
+[types.definitions.variants.name]
 name = "Rectangle"
 
-[[types.variants.fields]]
+[[types.definitions.variants.fields]]
 name = "width"
-type = "f64"
 
-[[types.variants.fields]]
+[types.definitions.variants.fields.type]
+name = "f64"
+
+[[types.definitions.variants.fields]]
 name = "height"
-type = "f64"
 
-[[types.variants]]
+[types.definitions.variants.fields.type]
+name = "f64"
+
+# Struct variant: LineShape { start: Point, end: Point }
+[[types.definitions.variants]]
 kind = "Struct"
-name = "LineShape" # Reusing the Point type inside an enum variant
 
-[[types.variants.fields]]
+[types.definitions.variants.name]
+name = "LineShape"
+
+[[types.definitions.variants.fields]]
 name = "start"
-type = "Point"
 
-[[types.variants.fields]]
+[types.definitions.variants.fields.type]
+name = "Point"
+
+[[types.definitions.variants.fields]]
 name = "end"
-type = "Point"
+
+[types.definitions.variants.fields.type]
+name = "Point"
+
+
+# ============================================================
+# Module: foo
+# ============================================================
+
+[[types.modules]]
+name = "foo"
+
+# foo::Bar
+[[types.modules.types]]
+kind = "Struct"
+
+[types.modules.types.name]
+name = "Bar"
+
+[[types.modules.types.fields]]
+name = "value"
+
+[types.modules.types.fields.type]
+name = "f64"
+
+
+# foo::Baz
+[[types.modules.types]]
+kind = "Struct"
+
+[types.modules.types.name]
+name = "Baz"
+
+[[types.modules.types.fields]]
+name = "Bar"
+
+[types.modules.types.fields.type]
+name = "Bar"
+
+
+# foo::FooTest
+# Uses definitions from the poo module.
+[[types.modules.types]]
+kind = "Struct"
+
+[types.modules.types.name]
+name = "FooTest"
+
+[[types.modules.types.fields]]
+name = "Bar_from_poo"
+
+[types.modules.types.fields.type]
+module = "super::poo"
+name = "Bar"
+
+[[types.modules.types.fields]]
+name = "Baz_from_poo"
+
+[types.modules.types.fields.type]
+module = "super::poo"
+name = "Baz"
+
+
+# ============================================================
+# Module: poo
+# ============================================================
+
+[[types.modules]]
+name = "poo"
+
+# poo::Bar
+[[types.modules.types]]
+kind = "Struct"
+
+[types.modules.types.name]
+name = "Bar"
+
+[[types.modules.types.fields]]
+name = "value"
+
+[types.modules.types.fields.type]
+name = "i32"
+
+
+# poo::Baz
+[[types.modules.types]]
+kind = "Struct"
+
+[types.modules.types.name]
+name = "Baz"
+
+[[types.modules.types.fields]]
+name = "Bar"
+
+[types.modules.types.fields.type]
+name = "Bar"
+
+
+# poo::PooTest
+# Uses definitions from the foo module.
+[[types.modules.types]]
+kind = "Struct"
+
+[types.modules.types.name]
+name = "PooTest"
+
+[[types.modules.types.fields]]
+name = "Bar_from_foo"
+
+[types.modules.types.fields.type]
+module = "super::foo"
+name = "Bar"
+
+[[types.modules.types.fields]]
+name = "Baz_from_foo"
+
+[types.modules.types.fields.type]
+module = "super::foo"
+name = "Baz"
+
+
+# ============================================================
+# Requests
+# ============================================================
 
 [requests]
+
+[requests.name]
 name = "Request"
 
 [[requests.variants]]
 kind = "Tuple"
+
+[requests.variants.name]
 name = "Shape"
-types = ["Shape"]
+
+[[requests.variants.types]]
+name = "Shape"
+
+
+# ============================================================
+# Responses
+# ============================================================
 
 [responses]
+
+[responses.name]
 name = "Response"
 
 [[responses.variants]]
 kind = "Tuple"
+
+[responses.variants.name]
 name = "Shape"
-types = ["Shape"]
+
+[[responses.variants.types]]
+name = "Shape"
